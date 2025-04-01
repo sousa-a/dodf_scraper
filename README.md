@@ -1,5 +1,5 @@
 # DODF scraper
-Script (MVP) para a extração de informações acerca de Extrato de Notas de Empenho publicadas no Diário Oficial da União (DOU) utilizando Python, Selenium e Openpyxl.
+Script (MVP) para a extração de informações acerca de Extrato de Notas de Empenho publicadas no Diário Oficial dp Distrito Federal(DODF) utilizando Python, Selenium e Openpyxl.
 
 ## Objetivo
 
@@ -47,5 +47,5 @@ O script realizará as seguintes atividades:
 
 ## Considerações
 
-Não há um padrão de publicação comum a todos os órgãos da Administração Direta e Indireta.<br><br>
+Não há um padrão de publicação comum a todos os órgãos.<br><br>
 Portanto, é possível que tais diferenças interfiram nos resultados obtidos após a execução.

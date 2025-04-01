@@ -7,7 +7,6 @@ import pandas as pd
 from datetime import datetime
 import time
 
-# URL base para consulta no DODF
 DODF_URL = "https://dodf.df.gov.br/dodf/jornal/diario?tpSecao=III"
 
 
@@ -15,10 +14,8 @@ def configurar_driver():
     """Retorna uma instância do driver do Chrome."""
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
-    options.add_argument("window-size=1920,1080")  # Set your desired window size
-    options.add_argument(
-        "zoom-factor=0.1"
-    )  # Set the desired zoom level (1.0 means 100%)
+    options.add_argument("window-size=1920,1080")
+    options.add_argument("zoom-factor=0.1")
     driver = webdriver.Chrome(options=options)
     driver.implicitly_wait(5)
     return driver
@@ -37,26 +34,22 @@ def baixar_pagina_listagem(data_consulta):
     all_links = []
 
     try:
-        # Seleciona a opção "Extrato" no menu
         tipo_de_materia = driver.find_element(By.XPATH, "//*[@id='tpMateria']")
         time.sleep(1)
         Select(tipo_de_materia).select_by_visible_text("Extrato")
         time.sleep(3)
 
         while True:
-            # Coleta todos os links da página atual que contenham "extrato" no href
             links_elements = driver.find_elements(
                 By.XPATH,
                 "//a[contains(translate(@href, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'extrato')]",
             )
             for elem in links_elements:
-                # Filtra pelo texto visível: somente se contiver "nota de empenho"
                 if "nota de empenho" in elem.text.lower():
                     link = elem.get_attribute("href")
                     if link and link not in all_links:
                         all_links.append(link)
 
-            # Tenta localizar e clicar no botão de próxima página usando CSS selector
             try:
                 next_page_element = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable(
@@ -86,18 +79,6 @@ def extrair_dados_texto(texto):
     """
     Utiliza expressões regulares para extrair os dados do texto completo do extrato.
     Apenas processa se o texto contiver a expressão "NOTA DE EMPENHO".
-
-    Os campos extraídos são:
-      1. Nota de Empenho
-      2. Processo
-      3. Contratante (Partes, contratante)
-      4. Contratado (Partes, contratado)
-      5. CNPJ do contratado
-      6. Objeto
-      7. Contrato/Ata/Dispensa
-      8. Valor
-      9. Data do empenho
-     10. Prazo (se houver)
     """
     dados = {}
 
@@ -105,7 +86,6 @@ def extrair_dados_texto(texto):
     if not re.search(r"NOTA DE EMPENHO", texto, re.IGNORECASE):
         return None
 
-    # Nota de Empenho: Exemplo: "EXTRATO DA NOTA DE EMPENHO 2024NE00414"
     m = re.search(
         r"EXTRATO\s+(?:DA|DE)\s+NOTA DE EMPENHO(?:\s*Nº)?\s*([\w\d]+)",
         texto,
@@ -113,11 +93,9 @@ def extrair_dados_texto(texto):
     )
     dados["Nota de Empenho"] = m.group(1) if m else None
 
-    # Processo: Exemplo: "Processo: 04008-00000354/2025-83"
     m = re.search(r"Processo:\s*([\d\-/]+)", texto, re.IGNORECASE)
     dados["Processo"] = m.group(1).strip() if m else None
 
-    # Partes: Captura o texto após "Partes:" até ponto ou ponto e vírgula.
     m = re.search(r"Partes:\s*(.*?)(?:[.;])", texto, re.IGNORECASE)
     if m:
         partes = m.group(1).strip()
@@ -137,19 +115,15 @@ def extrair_dados_texto(texto):
         dados["Contratado"] = None
         dados["CNPJ do contratado"] = None
 
-    # Objeto: Exemplo: "Objeto: Despesa com diárias de viagem ..."
     m = re.search(r"Objeto:\s*(.*?)(?:[.;])", texto, re.IGNORECASE)
     dados["Objeto"] = m.group(1).strip() if m else None
 
-    # Contrato/Ata/Dispensa: Procura por palavras-chave
     m = re.search(r"(Ata|Contrato|Dispensa).*?(?:[.;])", texto, re.IGNORECASE)
     dados["Contrato/Ata/Dispensa"] = m.group(0).strip() if m else None
 
-    # Valor: Exemplo: "VALOR: R$ 1.172,46"
     m = re.search(r"VALOR:\s*(R\$[\s\d\.,]+)", texto, re.IGNORECASE)
     dados["Valor"] = m.group(1).strip() if m else None
 
-    # Data do empenho: Exemplo: "Data do Empenho: 28/03/2025"
     m = re.search(
         r"Data\s+(?:do Empenho|da Emissão da Nota de Empenho):\s*([\d/]+)",
         texto,
@@ -157,7 +131,6 @@ def extrair_dados_texto(texto):
     )
     dados["Data do empenho"] = m.group(1).strip() if m else None
 
-    # Prazo: Exemplo: "Prazo: 30 dias" ou "PRAZO DE ENTREGA: 100% em 30 dias"
     m = re.search(r"PRAZO(?:\s+DE\s+ENTREGA)?:\s*(.*?)(?:[.;]|$)", texto, re.IGNORECASE)
     dados["Prazo"] = m.group(1).strip() if m else None
 
